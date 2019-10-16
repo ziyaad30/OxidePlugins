@@ -1,17 +1,10 @@
-using Facepunch;
-using Rust;
 using System;
 using System.Linq;
 using System.Globalization;
 using System.Collections.Generic;
-using System.Text;
 using Oxide.Core;
 using Oxide.Core.Configuration;
-using Oxide.Core.Plugins;
-using Oxide.Game.Rust;
 using UnityEngine;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 
 namespace Oxide.Plugins
@@ -24,6 +17,8 @@ namespace Oxide.Plugins
 
 		static NoPower plugin;
 		const string perms = "nopower.use";
+		
+		private static BuildingPrivlidge buildingPrivlidge;
 		
 		private bool ConfigChanged;
 		private DynamicConfigFile data;
@@ -97,7 +92,7 @@ namespace Oxide.Plugins
             {
 				{"NoPermissions", "You do not permissions to use this."},
 				{"NotAuthed", "You are not authed on this AutoTurret."},
-				{"NotAuthedSamSite", "You do not own this SamSite."},
+				{"NoBuildPrivilege", "You do not have building privilege."},
             }, this, "en");
         }
         #endregion
@@ -180,6 +175,12 @@ namespace Oxide.Plugins
 			TurretInput(input, player);
 		}
 		
+		private static bool IsAuthed(BasePlayer player, BaseEntity entity)
+        {
+            buildingPrivlidge = entity.GetBuildingPrivilege();
+            return buildingPrivlidge != null && entity.GetBuildingPrivilege().authorizedPlayers.Any(x => x.userid == player.userID);
+        }
+		
 		public void TurretInput(InputState input, BasePlayer player)
 		{
 			if (input == null || player == null) return;
@@ -212,6 +213,12 @@ namespace Oxide.Plugins
 							return;
 						}
 						
+						if (!IsAuthed(player, autoturret))
+						{
+							player.ChatMessage(msg("NoBuildPrivilege", player.UserIDString));
+							return;
+						}
+						
 						if (autoturret.IsOnline())
 						{
 							autoturret.SetIsOnline(false);
@@ -230,9 +237,9 @@ namespace Oxide.Plugins
 						if (hit.distance >= 1.5)
 							return;
 						
-						if (player.UserIDString != samsite.OwnerID.ToString())
+						if (!IsAuthed(player, samsite))
 						{
-							player.ChatMessage(msg("NotAuthedSamSite", player.UserIDString));
+							player.ChatMessage(msg("NoBuildPrivilege", player.UserIDString));
 							return;
 						}
 						
