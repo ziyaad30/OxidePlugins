@@ -16,7 +16,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Oxide.Plugins
 {
-    [Info("No Power", "Xavier", "0.0.1")]
+    [Info("No Power", "Xavier", "0.0.2")]
 	[Description("Allows AutoTurrets and SamSites to function without electricity.")]
 	
 	public class NoPower : RustPlugin
@@ -96,6 +96,8 @@ namespace Oxide.Plugins
             lang.RegisterMessages(new Dictionary<string, string>
             {
 				{"NoPermissions", "You do not permissions to use this."},
+				{"NotAuthed", "You are not authed on this AutoTurret."},
+				{"NotAuthedSamSite", "You do not own this SamSite."},
             }, this, "en");
         }
         #endregion
@@ -204,7 +206,13 @@ namespace Oxide.Plugins
 						if (hit.distance >= 1.5)
 							return;
 						
-						if (autoturret.IsOnline() && autoturret.IsAuthed(player))
+						if (!autoturret.IsAuthed(player))
+						{
+							player.ChatMessage(msg("NotAuthed", player.UserIDString));
+							return;
+						}
+						
+						if (autoturret.IsOnline())
 						{
 							autoturret.SetIsOnline(false);
 							PoweredTurrets.Remove(autoturret.net.ID);
@@ -221,6 +229,12 @@ namespace Oxide.Plugins
 					{
 						if (hit.distance >= 1.5)
 							return;
+						
+						if (player.UserIDString != samsite.OwnerID.ToString())
+						{
+							player.ChatMessage(msg("NotAuthedSamSite", player.UserIDString));
+							return;
+						}
 						
 						if (samsite.IsPowered())
 						{
